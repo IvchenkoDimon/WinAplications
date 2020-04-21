@@ -32,9 +32,9 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		/*SendMessage(hEdit1, WM_SETTEXT, 0, LPARAM(str1));
 		SetWindowText(hEdit1, str1);*/
 
-		SetDlgItemText(hwnd, IDC_EDIT1, str1);
-		
-		SetFocus(GetDlgItem(hwnd, IDC_BUTTON1));
+		//SetDlgItemText(hwnd, IDC_EDIT1, str1);
+		//strcat_s();
+		SetFocus(GetDlgItem(hwnd, IDOK));
 	}
 	break;
 	case WM_COMMAND:
@@ -50,8 +50,16 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 		case IDOK:
-			MessageBox(hwnd, "Hello", "Hi", MB_OK);
-				break;
+		{
+			const int SIZE = 255;
+			CHAR msg[SIZE] = "Hello ";
+			CHAR name[SIZE]{};
+			GetDlgItemText(hwnd, IDC_EDIT1, name, SIZE);
+			strcat_s(msg, SIZE, name);
+			strcat_s(msg, SIZE, "!");
+			MessageBox(hwnd, msg, "Hi", MB_OK|MB_ICONINFORMATION);
+		}
+			break;
 		case IDCANCEL:
 			EndDialog(hwnd, 0);
 			break;
