@@ -45,7 +45,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SetWindowText(hEdit2, str2);
 			break;
 		case IDOK:
-			MessageBox(hwnd, , "Hi", MB_OK);
+			MessageBox(hwnd, "Hello", "Hi", MB_OK);
 				break;
 		case IDCANCEL:
 			EndDialog(hwnd, 0);
