@@ -47,19 +47,28 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 		case IDC_COMBO1:
 		{
-			if (HIWORD(wParam) == CBN_SELENDOK) {
-				const int SIZE = 255;
-				CHAR buffer[SIZE]{};
-				CHAR message[SIZE] = "Вы выбрали: ";
-				//int i = SendMessage(hCombo, CB_GETCURSEL, 0, 0);
-				SendMessage(hCombo, CB_GETLBTEXT, SendMessage(hCombo, CB_GETCURSEL, 0, 0) , LPARAM(buffer));
-				strcat_s(message, SIZE, buffer);
-				MessageBox(hwnd, message, "Info", MB_OK | MB_ICONINFORMATION);
-			}
+			//if (HIWORD(wParam) == CBN_SELENDOK) {
+			//	const int SIZE = 255;  
+			//	CHAR buffer[SIZE]{};
+			//	CHAR message[SIZE] = "Вы выбрали: ";
+			//	//int i = SendMessage(hCombo, CB_GETCURSEL, 0, 0);
+			//	SendMessage(hCombo, CB_GETLBTEXT, SendMessage(hCombo, CB_GETCURSEL, 0, 0) , LPARAM(buffer));
+			//	strcat_s(message, SIZE, buffer);
+			//	MessageBox(hwnd, message, "Info", MB_OK | MB_ICONINFORMATION);
+			//}
 		}
 		break;
 		case IDOK:
-			MessageBox(hwnd, "Hello", "Hi", MB_OK);
+			//MessageBox(hwnd, "Hello", "Hi", MB_OK);
+		{
+			const int SIZE = 255;
+			CHAR buffer[SIZE]{};
+			CHAR message[SIZE] = "Вы выбрали: ";
+			//int i = SendMessage(hCombo, CB_GETCURSEL, 0, 0);
+			SendMessage(hCombo, CB_GETLBTEXT, SendMessage(hCombo, CB_GETCURSEL, 0, 0), LPARAM(buffer));
+			strcat_s(message, SIZE, buffer);
+			MessageBox(hwnd, message, "Info", MB_OK | MB_ICONINFORMATION);
+		}
 			break;
 		case IDCANCEL:
 			EndDialog(hwnd, 0);
