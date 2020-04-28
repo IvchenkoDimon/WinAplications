@@ -45,7 +45,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SetWindowText(hEdit2, str2);
 			break;
 		case IDOK:
-			const int SIZE = 255;
+			//const int SIZE = 255;
 
 			MessageBox(hwnd, "Hello", "Hi", MB_OK);
 				break;
