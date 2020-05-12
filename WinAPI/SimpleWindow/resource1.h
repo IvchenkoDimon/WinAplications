@@ -3,6 +3,8 @@
 // Used by Resource.rc
 //
 #define IDR_MENU1                       101
+#define IDC_EDIT						102
+
 #define ID_FILE_NEW                     40001
 #define ID_FILE_OPEN                    40002
 #define ID_FILE_SAVE                    40003
