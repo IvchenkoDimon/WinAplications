@@ -15,6 +15,9 @@
 #define ID_NEW_FILE                     40008
 #define ID_OPEN_FILE                    40009
 
+#define IDC_TOOLBAR						40101
+#define IDC_STATUS						40102
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

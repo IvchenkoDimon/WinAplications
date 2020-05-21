@@ -1,4 +1,5 @@
 #include<Windows.h>
+#include<CommCtrl.h>
 #include"resource1.h"
 #include"resource2.h"
 
@@ -106,13 +107,79 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetFocus(hEdit);
 
 		//-------------------------------------------------------------------------------------------
+		//							TOOLBAR														   //
+		//-------------------------------------------------------------------------------------------
+		HWND hTool = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
+		hwnd, (HMENU)IDC_TOOLBAR, GetModuleHandle(NULL), NULL
+		);
+		SendMessage(hTool, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+
+		// Add buttons:
+		TBBUTTON tbb[3]{};
+		TBADDBITMAP tbab;
+		tbab.hInst = HINST_COMMCTRL;
+		tbab.nID = IDB_STD_SMALL_COLOR;
+		SendMessage(hTool, TB_ADDBITMAP, 0, (LPARAM)&tbab);
+
+		ZeroMemory(tbb, sizeof(tbb));
+
+		tbb[0].iBitmap = STD_FILENEW;
+		tbb[0].fsState = TBSTATE_ENABLED;
+		tbb[0].fsStyle = TBSTYLE_BUTTON;
+		tbb[0].idCommand = ID_FILE_NEW;
+
+		tbb[1].iBitmap = STD_FILEOPEN;
+		tbb[1].fsState = TBSTATE_ENABLED;
+		tbb[1].fsStyle = TBSTYLE_BUTTON;
+		tbb[1].idCommand = ID_FILE_OPEN;
+
+		tbb[2].iBitmap = STD_FILESAVE;
+		tbb[2].fsState = TBSTATE_ENABLED;
+		tbb[2].fsStyle = TBSTYLE_BUTTON;
+		tbb[2].idCommand = ID_FILE_SAVE;
+
+		SendMessage(hTool, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM)&tbb);
+
+		//-------------------------------------------------------------------------------------------
+		//------------------------------STATUS BAR --------------------------------------------------
+		//-------------------------------------------------------------------------------------------
+		HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
+			hwnd, (HMENU)IDC_STATUS, GetModuleHandle(NULL), NULL
+		);
+		int statuswidth[] = { 100, 300, -1 };
+		SendMessage(hStatus, SB_SETPARTS, sizeof(statuswidth) / sizeof(int), (LPARAM)statuswidth);
+		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)"Hello");
+
+		//-------------------------------------------------------------------------------------------
 	}
 	break;
 	case WM_SIZE:
 	{
+		/*RECT rcClient;
+		GetClientRect(hwnd, &rcClient);
+		SetWindowPos(GetDlgItem(hwnd, IDC_EDIT), NULL, 0, 0, rcClient.right, rcClient.bottom, SWP_NOZORDER);*/
+
+
+		//Вычисляем высоту панели инструментов:
+		HWND hTool = GetDlgItem(hwnd, IDC_TOOLBAR);
+		SendMessage(hTool, TB_AUTOSIZE, 0, 0);
+		RECT rcTool;
+		GetWindowRect(hTool, &rcTool);
+		int iToolbarHeight = rcTool.bottom - rcTool.top;
+
+		//Вычисляем высоту строки состояния:
+		HWND hStatus = GetDlgItem(hwnd, IDC_STATUS);
+		SendMessage(hStatus, WM_SIZE, 0, 0);
+		RECT rcStatus;
+		GetWindowRect(hStatus, &rcStatus);
+		int iStatusHeight = rcStatus.bottom - rcStatus.top;
+
+		//Задаем размер поля для ввода:
+		HWND hEdit = GetDlgItem(hwnd, IDC_EDIT);
 		RECT rcClient;
 		GetClientRect(hwnd, &rcClient);
-		SetWindowPos(GetDlgItem(hwnd, IDC_EDIT), NULL, 0, 0, rcClient.right, rcClient.bottom, SWP_NOZORDER);
+		int iEditHeight = rcClient.bottom - iToolbarHeight - iStatusHeight;
+		SetWindowPos(hEdit, NULL, 0, iToolbarHeight, rcClient.right, iEditHeight, SWP_NOZORDER);
 	}
 	break;
 	case WM_COMMAND:
