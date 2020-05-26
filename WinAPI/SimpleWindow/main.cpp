@@ -40,6 +40,20 @@ VOID WatchChanges(HWND hwnd, BOOL(__stdcall*Action)(HWND))
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
+	//MessageBox(NULL, lpCmdLine, "Command promt", MB_OK | MB_ICONINFORMATION);
+	//MessageBox(NULL, GetCommandLine(), "Command promt", MB_OK | MB_ICONINFORMATION);
+
+	if (lpCmdLine[0])    //Если командная строка не пуста
+	{
+		//то там лежит имя файла, и мы загружаем его в наше имя файла:
+		//strcpy_s(szFileName, MAX_PATH, lpCmdLine);
+		for (int i = 0, j = 0; lpCmdLine[i]; i++)
+		{
+			if (lpCmdLine[i] != '\"')szFileName[j++] = lpCmdLine[i];
+		}
+	}
+
+
 	//1) Регистрация класса окна:
 	WNDCLASSEX wc;
 	wc.cbSize = sizeof(WNDCLASSEX);
@@ -66,7 +80,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, in
 	(
 		WS_EX_CLIENTEDGE,
 		SZ_CLASS_NAME,
-		"SimpleWindow",
+		"SimpleWindowTextEditor",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
 		NULL, NULL, hInstance, NULL
@@ -125,11 +139,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		);
 		SetFocus(hEdit);
 
+		if (szFileName[0])
+		{
+			LoadTextFileToEdit(hEdit, szFileName);
+		}
+
 		//-------------------------------------------------------------------------------------------
 		//							TOOLBAR														   //
 		//-------------------------------------------------------------------------------------------
 		HWND hTool = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
-		hwnd, (HMENU)IDC_TOOLBAR, GetModuleHandle(NULL), NULL
+			hwnd, (HMENU)IDC_TOOLBAR, GetModuleHandle(NULL), NULL
 		);
 		SendMessage(hTool, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
 
@@ -142,7 +161,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		ZeroMemory(tbb, sizeof(tbb));
 
-		tbb[0].iBitmap = STD_FILENEW;
+		/*tbb[0].iBitmap = STD_FILENEW;
 		tbb[0].fsState = TBSTATE_ENABLED;
 		tbb[0].fsStyle = TBSTYLE_BUTTON;
 		tbb[0].idCommand = ID_FILE_NEW;
@@ -155,7 +174,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		tbb[2].iBitmap = STD_FILESAVE;
 		tbb[2].fsState = TBSTATE_ENABLED;
 		tbb[2].fsStyle = TBSTYLE_BUTTON;
-		tbb[2].idCommand = ID_FILE_SAVE;
+		tbb[2].idCommand = ID_FILE_SAVE;*/
+		for (int i = 0; i < sizeof(tbb) / sizeof(TBBUTTON); i++)
+		{
+			tbb[i].iBitmap = STD_FILENEW + i;
+			tbb[i].fsState = TBSTATE_ENABLED;
+			tbb[i].fsStyle = TBSTYLE_BUTTON;
+			tbb[i].idCommand = ID_FILE_NEW + i;
+		}
 
 		SendMessage(hTool, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM)&tbb);
 
@@ -433,7 +459,7 @@ BOOL FileChanged(HWND hEdit)
 VOID SetFileNameToStatusBar(HWND hEdit)
 {
 	LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
-	CHAR szTitle[MAX_PATH] = "SimpleWindowEditor";
+	CHAR szTitle[MAX_PATH] = "SimpleWindowTextEditor";
 	strcat_s(szTitle, MAX_PATH, " - ");
 	strcat_s(szTitle, MAX_PATH, szNameOnly);
 	HWND hwparent = GetParent(hEdit);
