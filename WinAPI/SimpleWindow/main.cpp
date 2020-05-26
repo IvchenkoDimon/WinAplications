@@ -18,6 +18,25 @@ VOID DoFileOpen(HWND hwnd);
 VOID DoFileSave(HWND hwnd);
 
 BOOL FileChanged(HWND hEdit);//Функция проверки - был ли файл, изменен ли файл
+VOID SetFileNameToStatusBar(HWND hEdit);
+
+VOID WatchChanges(HWND hwnd, BOOL(__stdcall*Action)(HWND))
+{
+	if (FileChanged(GetDlgItem(hwnd, IDC_EDIT)))
+	{
+		switch (MessageBox(hwnd, "Сохранить изменения в файле?", "Не так быстро...", MB_YESNOCANCEL | MB_ICONQUESTION))
+		{
+		case IDYES: SendMessage(hwnd, WM_COMMAND, ID_FILE_SAVE, 0);
+		case IDNO: Action(hwnd);
+		case IDCANCEL: break;
+		}
+	}
+	else
+	{
+		Action(hwnd);
+	}
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -47,7 +66,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, in
 	(
 		WS_EX_CLIENTEDGE,
 		SZ_CLASS_NAME,
-		"This is my first Window",
+		"SimpleWindow",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
 		NULL, NULL, hInstance, NULL
@@ -146,9 +165,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
 			hwnd, (HMENU)IDC_STATUS, GetModuleHandle(NULL), NULL
 		);
-		int statuswidth[] = { 100, 300, -1 };
+
+		
+
+		int statuswidth[] = { 300, 500, -1 };
 		SendMessage(hStatus, SB_SETPARTS, sizeof(statuswidth) / sizeof(int), (LPARAM)statuswidth);
-		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)"Hello");
+		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)(szFileName[0] ? szFileName:"No file"));
 
 		//-------------------------------------------------------------------------------------------
 	}
@@ -295,7 +317,22 @@ BOOL LoadTextFileToEdit(HWND hEdit, LPCTSTR lpszFileName)
 				if (ReadFile(hFile, lpszFileText, dwFileSize, &dwRead, NULL))
 				{
 					if (SetWindowText(hEdit, lpszFileText))
-						bSuccess = TRUE;
+					{
+					bSuccess = TRUE;
+					SetFileNameToStatusBar(hEdit);
+					//LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
+					//CHAR szTitle[MAX_PATH] = "SimpleWindowEditor";
+					//strcat_s(szTitle, MAX_PATH, " - ");
+					//strcat_s(szTitle, MAX_PATH, szNameOnly);
+					//HWND hwparent = GetParent(hEdit);
+					//SetWindowText(hwparent, szTitle);
+					//HWND hStatus = GetDlgItem(hwparent, IDC_STATUS);
+					////API functions:
+					////HWND GetParent(HWND hwnd); Возвращает HWND родительского окна.
+					////HWND GetDlgItem(HWND hwnd, RESOURCE_NAME); Возвращает HWND окна, которое "привязано" у RESOURCE_NAME
+					////RESOURCE_NAME может означать меню, кнопку, строку состояния и т.д.
+					//SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)szFileName);
+					}
 				}
 			}
 		}
@@ -323,6 +360,7 @@ BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName)
 					DWORD dwWrite;
 					if (WriteFile(hFile, lpszFileText, dwTextLength, &dwWrite, NULL))
 						bSuccess = TRUE;
+					SetFileNameToStatusBar(hEdit);
 				}
 			}
 		}
@@ -391,4 +429,19 @@ BOOL FileChanged(HWND hEdit)
 	/*else
 		bFileWasChanged = FALSE;*/
 	return bFileWasChanged;
+}
+VOID SetFileNameToStatusBar(HWND hEdit)
+{
+	LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
+	CHAR szTitle[MAX_PATH] = "SimpleWindowEditor";
+	strcat_s(szTitle, MAX_PATH, " - ");
+	strcat_s(szTitle, MAX_PATH, szNameOnly);
+	HWND hwparent = GetParent(hEdit);
+	SetWindowText(hwparent, szTitle);
+	HWND hStatus = GetDlgItem(hwparent, IDC_STATUS);
+	//API functions:
+	//HWND GetParent(HWND hwnd); Возвращает HWND родительского окна.
+	//HWND GetDlgItem(HWND hwnd, RESOURCE_NAME); Возвращает HWND окна, которое "привязано" у RESOURCE_NAME
+	//RESOURCE_NAME может означать меню, кнопку, строку состояния и т.д.
+	SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)szFileName);
 }
