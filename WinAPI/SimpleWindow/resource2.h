@@ -5,7 +5,14 @@
 #define IDR_MENU1                       101
 #define IDD_ABOUT                       102
 #define IDI_ICON1                       104
+
 #define IDC_EDIT						105
+
+#define HOTKEY_NEW						201
+#define HOTKEY_OPEN						202
+#define HOTKEY_SAVE						203
+#define HOTKEY_SAVEAS					204
+#define HOTKEY_ABOUT					205
 
 
 #define ID_FILE_NEW                     40001

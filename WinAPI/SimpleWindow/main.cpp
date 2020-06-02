@@ -14,11 +14,26 @@ LRESULT CALLBACK AboutDlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 BOOL LoadTextFileToEdit(HWND hEdit, LPCTSTR lpszFileName);
 BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName);
 
-VOID DoFileOpen(HWND hwnd);
+BOOL __stdcall DoFileOpen(HWND hwnd);
 VOID DoFileSave(HWND hwnd);
+//соглашения о вызовах функции
+//__stdcall - вызываемая функция, очищает стек. Используеться для вызова функций Win32(WinAPI);
+//__cdecl - используется в С и С++ функциях. В этой конвенции стек очищает вызывающая функция.
+//
+
+
 
 BOOL FileChanged(HWND hEdit);//Функция проверки - был ли файл, изменен ли файл
 VOID SetFileNameToStatusBar(HWND hEdit);
+
+//////////////////////////////////Сочетания клавиш----------------------------------------------------
+//Для того чтобы использовать сочетания клавиш, нужно:
+//1. Объявить ресурс, к которому будет привязан HotKey.
+//2. Зарегистрировать сочетания клавиш при помощи RegisterHotKey, сами клавиши задаются через эту функцию.
+//3. Обработать сообщение WM_HOTKEY;
+//
+
+//WatchChanges
 
 VOID WatchChanges(HWND hwnd, BOOL(__stdcall*Action)(HWND))
 {
@@ -78,7 +93,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, in
 	//2) Создание окна:
 	HWND hwnd = CreateWindowEx
 	(
-		WS_EX_CLIENTEDGE,
+		WS_EX_CLIENTEDGE | WS_EX_ACCEPTFILES,
 		SZ_CLASS_NAME,
 		"SimpleWindowTextEditor",
 		WS_OVERLAPPEDWINDOW,
@@ -117,6 +132,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		HICON hIconSm = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 		SendMessage(hwnd, WM_SETICON, 0, (LPARAM)hIconSm);
+
+
+
 
 		//-------------------------------------------------------------------------------------------
 		//Создание текстового поля
@@ -192,11 +210,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			hwnd, (HMENU)IDC_STATUS, GetModuleHandle(NULL), NULL
 		);
 
-		
+
 
 		int statuswidth[] = { 300, 500, -1 };
 		SendMessage(hStatus, SB_SETPARTS, sizeof(statuswidth) / sizeof(int), (LPARAM)statuswidth);
-		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)(szFileName[0] ? szFileName:"No file"));
+		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)(szFileName[0] ? szFileName : "No file"));
+
+
+		RegisterHotKey(hwnd, HOTKEY_NEW, MOD_CONTROL, 'N');
+		RegisterHotKey(hwnd, HOTKEY_OPEN, MOD_CONTROL, 'O');
+		RegisterHotKey(hwnd, HOTKEY_SAVE, MOD_CONTROL, 'S');
+		RegisterHotKey(hwnd, HOTKEY_SAVEAS, MOD_CONTROL + MOD_ALT, 'S');
+		RegisterHotKey(hwnd, HOTKEY_ABOUT, 0, VK_F1);
+
 
 		//-------------------------------------------------------------------------------------------
 	}
@@ -230,12 +256,49 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetWindowPos(hEdit, NULL, 0, iToolbarHeight, rcClient.right, iEditHeight, SWP_NOZORDER);
 	}
 	break;
+	case WM_DROPFILES:
+	{
+		HDROP hDrop = (HDROP)wParam;
+		DragQueryFile(hDrop, 0, szFileName, MAX_PATH);
+		LoadTextFileToEdit(GetDlgItem(hwnd, IDC_EDIT), szFileName);
+		DragFinish(hDrop);
+	}
+	break;
+	case WM_HOTKEY:
+		switch (wParam)
+		{
+		case HOTKEY_NEW:
+			SendMessage(hwnd, WM_COMMAND, ID_FILE_NEW, 0); break;
+		case HOTKEY_OPEN:
+			SendMessage(hwnd, WM_COMMAND, ID_FILE_OPEN, 0); break;
+		case HOTKEY_SAVE:
+			SendMessage(hwnd, WM_COMMAND, ID_FILE_SAVE, 0); break;
+		case HOTKEY_SAVEAS:
+			SendMessage(hwnd, WM_COMMAND, ID_FILE_SAVEAS, 0); break;
+		case HOTKEY_ABOUT:
+			SendMessage(hwnd, WM_COMMAND, ID_HELP_ABOUT, 0); break;
+		}
+		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
 		case ID_FILE_OPEN:
 		{
-			DoFileOpen(hwnd);
+			if (FileChanged(GetDlgItem(hwnd, IDC_EDIT)))
+			{
+				/*switch (MessageBox(hwnd, "Сохранить изменения в файл?", "Не так быстро...", MB_YESNOCANCEL | MB_ICONQUESTION))
+					{
+					case IDYES: SendMessage(hwnd, WM_COMMAND, ID_FILE_SAVE, 0);
+					case IDNO: DestroyWindow(hwnd);
+					case IDCANCEL: break;
+					}*/
+				WatchChanges(hwnd, DoFileOpen);
+			}
+
+			else
+			{
+				DoFileOpen(hwnd);
+			}
 		}
 		break;
 		case ID_FILE_SAVE:
@@ -257,23 +320,29 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			DestroyWindow(hwnd);
 			break;
 		}
+		case ID_HELP_ABOUT:
+		{
+			switch (DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUT), hwnd, (DLGPROC)AboutDlgproc))
+			{
+			case IDOK:MessageBox(hwnd, "OK", "Info", NULL); break;
+			case IDCANCEL:MessageBox(hwnd, "CANCEL", "Info", NULL); break;
+			}
 		}
 		break;
-	case ID_HELP_ABOUT:
-	{
-		DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUT), hwnd, (DLGPROC)AboutDlgproc);
-	}
-	break;
+		}
+		break;
+
 	case WM_CLOSE:
 	{
 		if (FileChanged(GetDlgItem(hwnd, IDC_EDIT)))
 		{
-			switch (MessageBox(hwnd, "Сохранить изменения в файл?", "Не так быстро...", MB_YESNOCANCEL | MB_ICONQUESTION))
+			/*switch (MessageBox(hwnd, "Сохранить изменения в файл?", "Не так быстро...", MB_YESNOCANCEL | MB_ICONQUESTION))
 			{
 			case IDYES: SendMessage(hwnd, WM_COMMAND, ID_FILE_SAVE, 0);
 			case IDNO: DestroyWindow(hwnd);
 			case IDCANCEL: break;
-			}
+			}*/
+			WatchChanges(hwnd, DestroyWindow);
 		}
 		else
 		{
@@ -344,20 +413,20 @@ BOOL LoadTextFileToEdit(HWND hEdit, LPCTSTR lpszFileName)
 				{
 					if (SetWindowText(hEdit, lpszFileText))
 					{
-					bSuccess = TRUE;
-					SetFileNameToStatusBar(hEdit);
-					//LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
-					//CHAR szTitle[MAX_PATH] = "SimpleWindowEditor";
-					//strcat_s(szTitle, MAX_PATH, " - ");
-					//strcat_s(szTitle, MAX_PATH, szNameOnly);
-					//HWND hwparent = GetParent(hEdit);
-					//SetWindowText(hwparent, szTitle);
-					//HWND hStatus = GetDlgItem(hwparent, IDC_STATUS);
-					////API functions:
-					////HWND GetParent(HWND hwnd); Возвращает HWND родительского окна.
-					////HWND GetDlgItem(HWND hwnd, RESOURCE_NAME); Возвращает HWND окна, которое "привязано" у RESOURCE_NAME
-					////RESOURCE_NAME может означать меню, кнопку, строку состояния и т.д.
-					//SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)szFileName);
+						bSuccess = TRUE;
+						SetFileNameToStatusBar(hEdit);
+						//LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
+						//CHAR szTitle[MAX_PATH] = "SimpleWindowEditor";
+						//strcat_s(szTitle, MAX_PATH, " - ");
+						//strcat_s(szTitle, MAX_PATH, szNameOnly);
+						//HWND hwparent = GetParent(hEdit);
+						//SetWindowText(hwparent, szTitle);
+						//HWND hStatus = GetDlgItem(hwparent, IDC_STATUS);
+						////API functions:
+						////HWND GetParent(HWND hwnd); Возвращает HWND родительского окна.
+						////HWND GetDlgItem(HWND hwnd, RESOURCE_NAME); Возвращает HWND окна, которое "привязано" у RESOURCE_NAME
+						////RESOURCE_NAME может означать меню, кнопку, строку состояния и т.д.
+						//SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)szFileName);
 					}
 				}
 			}
@@ -378,7 +447,7 @@ BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName)
 		{
 
 			if (lpszFileText)GlobalFree(lpszFileText);
-			LPSTR lpszFileText = (LPSTR)GlobalAlloc(GPTR, dwTextLength + 1);
+			lpszFileText = (LPSTR)GlobalAlloc(GPTR, dwTextLength + 1);
 			if (lpszFileText)
 			{
 				if (GetWindowText(hEdit, lpszFileText, dwTextLength + 1))
@@ -396,7 +465,7 @@ BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName)
 
 }
 
-VOID DoFileOpen(HWND hwnd)
+BOOL __stdcall DoFileOpen(HWND hwnd)
 {
 	OPENFILENAME ofn;
 	//CHAR szFileName[MAX_PATH]{};
@@ -414,7 +483,9 @@ VOID DoFileOpen(HWND hwnd)
 	if (GetOpenFileName(&ofn))
 	{
 		LoadTextFileToEdit(GetDlgItem(hwnd, IDC_EDIT), szFileName);
+		return TRUE;
 	}
+	return FALSE;
 }
 
 VOID DoFileSave(HWND hwnd)
