@@ -215,8 +215,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		int statuswidth[] = { 300, 500, -1 };
 		SendMessage(hStatus, SB_SETPARTS, sizeof(statuswidth) / sizeof(int), (LPARAM)statuswidth);
 		SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)(szFileName[0] ? szFileName : "No file"));
-
-
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		////////////////////////////HOTKEY/////////////////////////////////////////////////////////////
 		RegisterHotKey(hwnd, HOTKEY_NEW, MOD_CONTROL, 'N');
 		RegisterHotKey(hwnd, HOTKEY_OPEN, MOD_CONTROL, 'O');
 		RegisterHotKey(hwnd, HOTKEY_SAVE, MOD_CONTROL, 'S');
@@ -225,6 +225,25 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 		//-------------------------------------------------------------------------------------------
+		////////////////////////////////////////---FONTS---///////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////////
+
+		HDC hdc = GetDC(NULL);
+		long lfHeight = -MulDiv(18, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+		ReleaseDC(NULL, hdc);
+
+		HFONT hf = CreateFont
+		(
+			lfHeight,
+			0, 0, 0, 0,
+			TRUE, TRUE, 0,
+			0, 0, 0, 0, 0,
+			"Arial"
+		);
+		SendMessage(hEdit, WM_SETFONT, (WPARAM)hf, 0);
+
+
+
 	}
 	break;
 	case WM_SIZE:
