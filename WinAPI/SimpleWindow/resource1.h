@@ -22,6 +22,7 @@
 #define ID_FILE_EXIT40007               40007
 #define ID_NEW_FILE                     40008
 #define ID_OPEN_FILE                    40009
+#define ID_FORMAT_FONT	40010
 
 #define IDC_TOOLBAR						40101
 #define IDC_STATUS						40102

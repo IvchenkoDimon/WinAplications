@@ -27,6 +27,7 @@
 #define ID_HELP_ABOUT                   40010
 #define ID_FILE_OPEN40011               40011
 #define ID_FILE_NEW40012                40012
+#define ID_FORMAT_FONT					40013
 
 #define IDC_TOOLBAR						40101
 #define IDC_STATUS						40102

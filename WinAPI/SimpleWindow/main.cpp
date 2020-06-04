@@ -3,10 +3,15 @@
 #include"resource1.h"
 #include"resource2.h"
 
+//#define ID_FORMAT_FONT 40014
+
 CONST CHAR SZ_CLASS_NAME[] = "MyWindowClass";
 
 CHAR szFileName[MAX_PATH]{};
 LPSTR lpszFileText = NULL;
+
+HFONT g_hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+COLORREF g_rgbText = RGB(0, 0, 0);
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK AboutDlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -14,6 +19,7 @@ LRESULT CALLBACK AboutDlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 BOOL LoadTextFileToEdit(HWND hEdit, LPCTSTR lpszFileName);
 BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName);
 
+BOOL __stdcall DoFileNew(HWND hwnd);
 BOOL __stdcall DoFileOpen(HWND hwnd);
 VOID DoFileSave(HWND hwnd);
 //соглашения о вызовах функции
@@ -22,9 +28,9 @@ VOID DoFileSave(HWND hwnd);
 //
 
 
-
 BOOL FileChanged(HWND hEdit);//Функция проверки - был ли файл, изменен ли файл
 VOID SetFileNameToStatusBar(HWND hEdit);
+VOID DoSelectFont(HWND hwnd);
 
 //////////////////////////////////Сочетания клавиш----------------------------------------------------
 //Для того чтобы использовать сочетания клавиш, нужно:
@@ -133,7 +139,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		HICON hIconSm = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 		SendMessage(hwnd, WM_SETICON, 0, (LPARAM)hIconSm);
 
-
+		HMENU hMenu = (HMENU)GetDlgItem(hwnd, IDR_MENU1);
+		HMENU hSubMenu = CreatePopupMenu();
+		AppendMenu(hSubMenu, MF_STRING, ID_FORMAT_FONT, "Font");
+		AppendMenu(hMenu, MF_STRING|MF_POPUP, (UINT)hSubMenu, "Format");
 
 
 		//-------------------------------------------------------------------------------------------
@@ -301,6 +310,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+		case ID_FILE_NEW:
+		{
+			if (FileChanged(GetDlgItem(hwnd, IDC_EDIT)))
+			{
+				WatchChanges(hwnd, DoFileNew);
+			}
+			else
+			{
+				DoFileNew(hwnd);
+			}
+		}
+		break;
 		case ID_FILE_OPEN:
 		{
 			if (FileChanged(GetDlgItem(hwnd, IDC_EDIT)))
@@ -339,6 +360,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			DestroyWindow(hwnd);
 			break;
 		}
+		case ID_FORMAT_FONT:
+		{
+			DoSelectFont(hwnd);
+		}
+		break;
 		case ID_HELP_ABOUT:
 		{
 			switch (DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUT), hwnd, (DLGPROC)AboutDlgproc))
@@ -483,7 +509,19 @@ BOOL SaveTextFileFromEdit(HWND hEdit, LPCTSTR lpszFileName)
 	return bSuccess;
 
 }
-
+BOOL __stdcall DoFileNew(HWND hwnd)
+{
+	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT);
+	SetWindowText(hEdit, "");
+	ZeroMemory(szFileName, sizeof(szFileName));
+	if (lpszFileText)
+	{
+		GlobalFree(lpszFileText);
+		lpszFileText = NULL;
+	}
+	SetFileNameToStatusBar(GetDlgItem(hwnd, IDC_EDIT));
+	return TRUE;
+}	
 BOOL __stdcall DoFileOpen(HWND hwnd)
 {
 	OPENFILENAME ofn;
@@ -548,16 +586,50 @@ BOOL FileChanged(HWND hEdit)
 }
 VOID SetFileNameToStatusBar(HWND hEdit)
 {
-	LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
 	CHAR szTitle[MAX_PATH] = "SimpleWindowTextEditor";
-	strcat_s(szTitle, MAX_PATH, " - ");
-	strcat_s(szTitle, MAX_PATH, szNameOnly);
+	if (szFileName[0])
+	{
+		LPSTR szNameOnly = strrchr(szFileName, '\\') + 1;
+		strcat_s(szTitle, MAX_PATH, " - ");
+		strcat_s(szTitle, MAX_PATH, szNameOnly);
+	}
 	HWND hwparent = GetParent(hEdit);
 	SetWindowText(hwparent, szTitle);
 	HWND hStatus = GetDlgItem(hwparent, IDC_STATUS);
+	
 	//API functions:
 	//HWND GetParent(HWND hwnd); Возвращает HWND родительского окна.
 	//HWND GetDlgItem(HWND hwnd, RESOURCE_NAME); Возвращает HWND окна, которое "привязано" у RESOURCE_NAME
 	//RESOURCE_NAME может означать меню, кнопку, строку состояния и т.д.
-	SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)szFileName);
+	SendMessage(hStatus, WM_SETTEXT, 0, (LPARAM)(szFileName[0] ? szFileName : "No file"));
+}
+VOID DoSelectFont(HWND hwnd)
+{
+	CHOOSEFONT cf = { sizeof(CHOOSEFONT) };
+	LOGFONT lf;
+
+	GetObject(g_hFont, sizeof(LOGFONT), &lf);
+
+	cf.Flags = CF_EFFECTS | CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS;
+	cf.hwndOwner = hwnd;
+	cf.lpLogFont = &lf;
+	cf.rgbColors = g_rgbText;
+
+	if (ChooseFont(&cf))
+	{
+		HFONT hf = CreateFontIndirect(&lf);
+		if(hf)
+		{
+			g_hFont = hf;
+		}
+		else
+		{
+			MessageBox(hwnd, "Font creation failed!", "Error", MB_OK | MB_ICONERROR);
+		}
+		g_rgbText = cf.rgbColors;
+	}
+	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT);
+	SendMessage(hEdit, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+
+
 }
