@@ -15,10 +15,9 @@ BOOL CALLBACK DlgProg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_INITDIALOG:
 	{
-		HWND hEdit = GetDlgItem(hwnd, IDC_EDIT1);
-		SetFocus(hEdit);
+		SetFocus(GetDlgItem(hwnd, IDC_EDIT1));
 	}
-		break;
+	break;
 	case WM_CTLCOLORSTATIC:
 	{
 		
@@ -54,8 +53,9 @@ BOOL CALLBACK DlgProg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		EndDialog(hwnd, 0);
 		break;
-	default:
-		return FALSE;
+	//default:  
+	//return FALSE
 	}
-	return TRUE;
+		return FALSE;
+	//return TRUE;
 }
