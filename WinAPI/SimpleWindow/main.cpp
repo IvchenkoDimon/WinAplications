@@ -10,6 +10,7 @@ CONST CHAR SZ_CLASS_NAME[] = "MyWindowClass";
 CHAR szFileName[MAX_PATH]{};
 LPSTR lpszFileText = NULL;
 
+
 HFONT g_hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 COLORREF g_rgbText = RGB(0, 0, 0);
 
@@ -282,6 +283,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hwnd, &rcClient);
 		int iEditHeight = rcClient.bottom - iToolbarHeight - iStatusHeight;
 		SetWindowPos(hEdit, NULL, 0, iToolbarHeight, rcClient.right, iEditHeight, SWP_NOZORDER);
+	}
+	break;
+	case WM_CTLCOLOREDIT:
+	{
+		SetTextColor((HDC)wParam, g_rgbText); return 0;
 	}
 	break;
 	case WM_DROPFILES:
@@ -621,15 +627,14 @@ VOID DoSelectFont(HWND hwnd)
 		if(hf)
 		{
 			g_hFont = hf;
+			g_rgbText = cf.rgbColors;
 		}
 		else
 		{
 			MessageBox(hwnd, "Font creation failed!", "Error", MB_OK | MB_ICONERROR);
 		}
-		g_rgbText = cf.rgbColors;
 	}
 	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT);
 	SendMessage(hEdit, WM_SETFONT, (WPARAM)g_hFont, TRUE);
-
-
+	SendMessage(GetDlgItem(hwnd, IDC_EDIT), WM_CTLCOLOREDIT, g_rgbText, IDC_EDIT);
 }
